@@ -1,0 +1,18 @@
+---
+title: "EDA Jorick Baron"
+author: "Jorick Baron"
+output: pdf_document
+---
+
+```{r setup}
+library(knitr)
+```
+
+```{r codebook}
+codebook <- read.delim("Data/codebook.csv", sep = ",")
+kable(codebook, caption = "Table1: Codebook")
+```
+
+```{r}
+data <- read.csv(file="Data/source/Debernardi_et_al_2020_data.csv")
+```
