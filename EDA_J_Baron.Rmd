@@ -4,15 +4,29 @@ author: "Jorick Baron"
 output: pdf_document
 ---
 
-```{r setup}
+```{r setup, message=FALSE}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(stringr)
 library(knitr)
+library(kableExtra)
 ```
 
-```{r codebook}
+In this EDA we will explore the data downloaded from [here](https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer). For future reference we will describe the data in the codebook below.
+
+```{r codebook, echo=TRUE}
 codebook <- read.delim("Data/codebook.csv", sep = ",")
-kable(codebook, caption = "Table1: Codebook")
+kable(codebook, caption = "Table 1: Codebook", align = "lcccr", booktabs = T) %>%
+  kable_styling(latex_options = c("scale_down"))
 ```
 
-```{r}
-data <- read.csv(file="Data/source/Debernardi_et_al_2020_data.csv")
+\pagebreak
+
+First we will load in the data and to check if it has loaded in properly we look at the structure of the loaded data.
+
+```{r echo=TRUE}
+data <- read.table(file="Data/source/Debernardi_et_al_2020_data.csv", sep = ",", header = T, na.strings = "")
+str(data)
 ```
