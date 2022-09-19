@@ -26,7 +26,58 @@ kable(codebook, caption = "Table 1: Codebook", align = "lcccr", booktabs = T) %>
 
 First we will load in the data and to check if it has loaded in properly we look at the structure of the loaded data.
 
-```{r echo=TRUE}
+```{r structure, echo=TRUE}
 data <- read.table(file="Data/source/Debernardi_et_al_2020_data.csv", sep = ",", header = T, na.strings = "")
 str(data)
+```
+
+Thus far it seems to have loaded correctly.
+
+We will also check the first few records maybe catch some errors.
+
+```{r head}
+head(data)
+```
+
+The data seems to have quite a few NAs, reading further into the description most would be expected i.e. no stage if there is no cancer nor a diagnosis.
+
+Let's check that nothing went wrong with those two anyway.
+
+```{r check NA diagnosis}
+healthy <- subset(data, diagnosis == 1, select = c(diagnosis, stage, benign_sample_diagnosis))
+cancerfree <- subset(data, diagnosis == 2, select = c(diagnosis, stage, benign_sample_diagnosis))
+cancerous <- subset(data, diagnosis == 3, select = c(diagnosis, stage, benign_sample_diagnosis))
+
+stage_na_count <- sum(is.na(data$stage))
+bsd_na_count <- sum(is.na(data$benign_sample_diagnosis))
+paste("all these numbers should be the same number", stage_na_count - nrow(cancerfree), bsd_na_count - nrow(cancerous), nrow(healthy))
+```
+
+Those numbers lined up to expectations.
+
+The NAs in columns "plasma_CA19_9" and "REG1A" are supposed to be there because not every patient had been fully tested:\
+"REG1A ... Only assessed in 306 patients", "plasma_CA19_9 ... Only assessed in 350 patients" see Debernardi et al 2020 documentation.csv in the source files.\
+However to make sure everything is correct these numbers will be tested.
+
+```{r check NA biomarkers}
+n_plasma_CA19_9 <- nrow(data) - sum(is.na(data$plasma_CA19_9))
+n_REG1A <- nrow(data) - sum(is.na(data$REG1A))
+paste("REG1A:", n_REG1A, "plasma_CA19_9:", n_plasma_CA19_9)
+```
+
+These numbers are correct.
+
+Are there more NAs?
+
+```{r final NA check}
+sum(is.na(data[, c(1:6, 10:13)]))
+```
+
+0 NAs remaining.
+
+Now let's take a closer look at the data itself
+
+```{r}
+boxplot(data[c(4, 9, 10)])
+boxplot(data[11:14])
 ```

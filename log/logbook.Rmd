@@ -26,3 +26,13 @@ output: pdf_document
 -   research question: Can a model be trained using machine learning techniques to detect if a person has pancreatic cancer using data from a urine sample?
 
 -   made sure the data loaded correctly
+
+## Dag 3
+
+*19-9-2022*
+
+-   checked if the NAs of columns "stage" and "benign_sample_diagnosis" where correct.
+
+-   checked if the NAs of columns "plasma_CA19_9" and "REG1A" where correct.
+
+-   
