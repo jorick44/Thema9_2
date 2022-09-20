@@ -75,9 +75,242 @@ sum(is.na(data[, c(1:6, 10:13)]))
 
 0 NAs remaining.
 
-Now let's take a closer look at the data itself
+Let's look at a summary of the data.
 
 ```{r}
-boxplot(data[c(4, 9, 10)])
-boxplot(data[11:14])
+summary(data[,c(4, 9:14)])
+```
+
+Much of the data seems to be imbalanced with outliers.
+
+Now let's take a closer look at the data itself using box-plots.
+
+```{r boxplots ungrouped, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, paged.print=FALSE}
+p1<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = age))+
+  ylab("age in years") + 
+  xlab(NULL)
+
+p2<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = plasma_CA19_9))+
+  ylab("plasma_CA19_9 in U/ml") + 
+  xlab(NULL)+
+  ylim(0,500)
+
+p3<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = creatinine))+
+  ylab("creatinine in mg/ml") + 
+  xlab(NULL)
+
+p4<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = LYVE1))+
+  ylab("LYVE1 in ng/ml") + 
+  xlab(NULL)+
+  ylim(0,17)
+
+p5<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = REG1B))+
+  ylab("REG1B in ng/ml") + 
+  xlab(NULL)+
+  ylim(0,600)
+
+p6<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = TFF1))+
+  ylab("TFF1 in ng/ml") + 
+  xlab(NULL)+
+  ylim(0,5000)
+
+p7<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = REG1A))+
+  ylab("REG1A in ng/ml") + 
+  xlab(NULL) +
+  ylim(0,5000)
+
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, nrow = 2)
+```
+
+There are many outliers to take a good look at the whiskers y-limits are in place. Even still it's a lot maybe adding another dimension can correct this.
+
+To add this extra dimension let's look at the difference in diagnoses. To properly do this we will also assign levels to the diagnosis column in the dataframe.
+
+```{r boxplot grouped, fig.height=10, fig.width=20, message=FALSE, warning=FALSE}
+data$diagnosis <- factor(data$diagnosis)
+
+gp1 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = age,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("age in years")
+
+gp2 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = plasma_CA19_9,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("plasma_CA19_9 in U/ml")+
+  ylim(0,500)
+
+gp3 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = creatinine,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("creatinine in mg/ml")
+
+gp4 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = LYVE1,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("LIVE1 in ng/ml")+
+  ylim(0,17)
+
+gp5 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = REG1B,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("REG1B in ng/ml")+
+  ylim(0,600)
+
+gp6 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = TFF1,
+                            group=diagnosis,
+                            fill=diagnosis))+
+  scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("TFF1 in ng/ml")+
+  ylim(0,5000)
+
+gp7 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = REG1A,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("REG1A in ng/ml")+
+  ylim(0,5000)
+
+grid.arrange(gp1, gp2, gp3, gp4, gp5, gp6, gp7, nrow = 3)
+```
+
+The data still has many outliers but by many columns a pattern does emerge.
+
+```{r log transformation,}
+trans <- as.data.frame(log(data$plasma_CA19_9))
+names(trans) <- "plasma_CA19_9"
+trans$creatinine <- log(data$creatinine)
+trans$LYVE1 <- log(data$LYVE1)
+trans$REG1B <- log(data$REG1B)
+trans$TFF1 <- log(data$TFF1)
+trans$REG1A <- log(data$REG1A)
+trans$diagnosis <- data$diagnosis
+head(trans)
+```
+
+Now having transformed the data lets see how this influences the distribution.
+
+```{r fig.height=10, fig.width=20}
+
+tgp1 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = plasma_CA19_9,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("plasma_CA19_9 in U/ml")
+
+tgp2 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = creatinine,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("creatinine in mg/ml")
+
+tgp3 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = LYVE1,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("LIVE1 in ng/ml")
+
+tgp4 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = REG1B,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("REG1B in ng/ml")
+
+tgp5 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = TFF1,
+                            group=diagnosis,
+                            fill=diagnosis))+
+  scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("TFF1 in ng/ml")
+
+tgp6 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = diagnosis,
+                            y = REG1A,
+                            group=diagnosis,
+                            fill=diagnosis))+
+    scale_x_discrete(labels=c("control",
+                            "benign hepatobiliary disease",
+                            "pancreatic cancer"))+
+  xlab("diagnosis")+
+  ylab("REG1A in ng/ml")
+
+grid.arrange(tgp1, tgp2, tgp3, tgp4, tgp5, tgp6, nrow = 3)
 ```

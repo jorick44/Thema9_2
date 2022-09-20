@@ -35,4 +35,12 @@ output: pdf_document
 
 -   checked if the NAs of columns "plasma_CA19_9" and "REG1A" where correct.
 
--   
+## Dag 4
+
+*20-9-2022*
+
+-   explored distribution of data using box-plots
+
+-   explored distribution of grouped data using box-plots
+
+-   made a second dataframe containing log transformed values
