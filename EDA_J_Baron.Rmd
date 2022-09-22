@@ -12,6 +12,7 @@ library(gridExtra)
 library(stringr)
 library(knitr)
 library(kableExtra)
+library(e1071) 
 ```
 
 In this EDA we will explore the data downloaded from [here](https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer). For future reference we will describe the data in the codebook below.
@@ -230,7 +231,23 @@ grid.arrange(gp1, gp2, gp3, gp4, gp5, gp6, gp7, nrow = 3)
 
 The data still has many outliers but by many columns a pattern does emerge.
 
-```{r log transformation,}
+Let's use statistical tests to test the skewness.
+
+```{r skewness}
+skewness(data$age) 
+skewness(data$plasma_CA19_9, na.rm = T)
+skewness(data$creatinine)
+skewness(data$LYVE1)
+skewness(data$REG1B)
+skewness(data$LYVE1)
+skewness(data$REG1A, na.rm = T) 
+```
+
+Here we see that everything is skewed greatly except age.
+
+A way of dealing with this skewness is to apply a log transformation on the data due to the high positively skewed data.
+
+```{r log transformation}
 trans <- as.data.frame(log(data$plasma_CA19_9))
 names(trans) <- "plasma_CA19_9"
 trans$creatinine <- log(data$creatinine)
@@ -244,7 +261,7 @@ head(trans)
 
 Now having transformed the data lets see how this influences the distribution.
 
-```{r fig.height=10, fig.width=20}
+```{r boxplot transformed data, fig.height=10, fig.width=20, message=FALSE, warning=FALSE}
 
 tgp1 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = diagnosis,
@@ -255,7 +272,7 @@ tgp1 <- ggplot(data = trans)+
                             "benign hepatobiliary disease",
                             "pancreatic cancer"))+
   xlab("diagnosis")+
-  ylab("plasma_CA19_9 in U/ml")
+  ylab("plasma_CA19_9 in U/ml (log transformed)")
 
 tgp2 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = diagnosis,
@@ -266,7 +283,7 @@ tgp2 <- ggplot(data = trans)+
                             "benign hepatobiliary disease",
                             "pancreatic cancer"))+
   xlab("diagnosis")+
-  ylab("creatinine in mg/ml")
+  ylab("creatinine in mg/ml (log transformed)")
 
 tgp3 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = diagnosis,
@@ -277,7 +294,7 @@ tgp3 <- ggplot(data = trans)+
                             "benign hepatobiliary disease",
                             "pancreatic cancer"))+
   xlab("diagnosis")+
-  ylab("LIVE1 in ng/ml")
+  ylab("LIVE1 in ng/ml (log transformed)")
 
 tgp4 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = diagnosis,
@@ -288,7 +305,7 @@ tgp4 <- ggplot(data = trans)+
                             "benign hepatobiliary disease",
                             "pancreatic cancer"))+
   xlab("diagnosis")+
-  ylab("REG1B in ng/ml")
+  ylab("REG1B in ng/ml (log transformed)")
 
 tgp5 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = diagnosis,
@@ -299,7 +316,7 @@ tgp5 <- ggplot(data = trans)+
                             "benign hepatobiliary disease",
                             "pancreatic cancer"))+
   xlab("diagnosis")+
-  ylab("TFF1 in ng/ml")
+  ylab("TFF1 in ng/ml (log transformed)")
 
 tgp6 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = diagnosis,
@@ -310,7 +327,45 @@ tgp6 <- ggplot(data = trans)+
                             "benign hepatobiliary disease",
                             "pancreatic cancer"))+
   xlab("diagnosis")+
-  ylab("REG1A in ng/ml")
+  ylab("REG1A in ng/ml (log transformed)")
 
 grid.arrange(tgp1, tgp2, tgp3, tgp4, tgp5, tgp6, nrow = 3)
+```
+
+This data looks more normalized than before.
+
+However it's good practise to test normality after transformations.
+
+```{r qqlpots, fig.height=10, fig.width=20, message=FALSE, warning=FALSE}
+qq1 <- ggplot(trans, aes(sample = plasma_CA19_9, colour = diagnosis)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("plasma_CA19_9")
+
+qq2 <- ggplot(trans, aes(sample = creatinine, colour = diagnosis)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("creatinine")
+
+qq3 <- ggplot(trans, aes(sample = LYVE1, colour = diagnosis)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("LYVE1")
+
+qq4 <- ggplot(trans, aes(sample = REG1B, colour = diagnosis)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("REG1B")
+
+qq5 <- ggplot(trans, aes(sample = TFF1, colour = diagnosis)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("TFF1")
+
+qq6 <- ggplot(trans, aes(sample = REG1A, colour = diagnosis)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("REG1A")
+
+grid.arrange(qq1, qq2, qq3, qq4, qq5, qq6, nrow = 2)
 ```

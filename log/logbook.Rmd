@@ -44,3 +44,11 @@ output: pdf_document
 -   explored distribution of grouped data using box-plots
 
 -   made a second dataframe containing log transformed values
+
+## Dag 5
+
+22-9-2022
+
+-   calculated skewness of untransformed data
+
+-   created qq_plots of transformed data
