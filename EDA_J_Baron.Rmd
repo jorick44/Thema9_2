@@ -254,7 +254,7 @@ trans$creatinine <- log(data$creatinine)
 trans$LYVE1 <- log(data$LYVE1)
 trans$REG1B <- log(data$REG1B)
 trans$TFF1 <- log(data$TFF1)
-trans$REG1A <- log(data$REG1A)
+trans$REG1A <- log(data$REG1A + 1)
 trans$diagnosis <- data$diagnosis
 head(trans)
 ```
@@ -337,31 +337,37 @@ This data looks more normalized than before.
 However it's good practise to test normality after transformations.
 
 ```{r qqlpots, fig.height=10, fig.width=20, message=FALSE, warning=FALSE}
+shapiro.test(trans$plasma_CA19_9)
 qq1 <- ggplot(trans, aes(sample = plasma_CA19_9, colour = diagnosis)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("plasma_CA19_9")
 
+shapiro.test(trans$creatinine)
 qq2 <- ggplot(trans, aes(sample = creatinine, colour = diagnosis)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("creatinine")
 
+shapiro.test(trans$LYVE1)
 qq3 <- ggplot(trans, aes(sample = LYVE1, colour = diagnosis)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("LYVE1")
 
+shapiro.test(trans$REG1B)
 qq4 <- ggplot(trans, aes(sample = REG1B, colour = diagnosis)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("REG1B")
 
+shapiro.test(trans$TFF1)
 qq5 <- ggplot(trans, aes(sample = TFF1, colour = diagnosis)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("TFF1")
 
+shapiro.test(trans$REG1A)
 qq6 <- ggplot(trans, aes(sample = REG1A, colour = diagnosis)) +
   stat_qq() +
   stat_qq_line() +
@@ -369,3 +375,19 @@ qq6 <- ggplot(trans, aes(sample = REG1A, colour = diagnosis)) +
 
 grid.arrange(qq1, qq2, qq3, qq4, qq5, qq6, nrow = 2)
 ```
+
+The data is despite the transformation still not fully normalised however we can still continue but keep this in mind for future.
+
+```{r new dataframe}
+new_data <- cbind(data[3:6], trans[2:6])
+```
+
+Using the new data let's explore if the data is correlated.
+
+```{r}
+matrix_data <- drop_na(new_data[,c(2, 5:9)])
+cor_matrix <- cor(matrix_data)
+heatmap(cor_matrix, scale = "column")
+```
+
+REG1 A and B seem moderately correlated otherwise no real correlation is observed.

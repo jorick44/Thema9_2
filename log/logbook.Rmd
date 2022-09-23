@@ -52,3 +52,15 @@ output: pdf_document
 -   calculated skewness of untransformed data
 
 -   created qq_plots of transformed data
+
+## Dag 6
+
+*23-9-2022*
+
+-   processed feedback to alter research question to: "how accurate can a model be trained to detect the difficult to diagnose pancreatic cancer utilising a patient's urine sample?"
+
+-   will create new dataset with only the relevant columns dropping: sample_id, patient_cohort, stage, benign_sample_diagnosis and plasma_CA19_9 due to it not being from urine.
+
+-   fixed log transformation
+
+-   created heatmap

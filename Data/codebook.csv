@@ -8,7 +8,7 @@ diagnosis,"Diagnosis (1=Control, 2=Benign, 3=PDAC)","1 = control, 2 = benign hep
 stage,Stage,"For those with pancratic cancer, what stage was it? One of IA, IB, IIA, IIIB, III, IV",string,NA
 benign_sample_diagnosis,Benign Samples Diagnosis,"For those with a benign, non-cancerous diagnosis, what was the diagnosis?",string,NA
 plasma_CA19_9,Plasma CA19-9 U/ml,Blood plasma levels of CA 19–9 monoclonal antibody that is often elevated in patients with pancreatic cancer.,float,plasma units/milliliter
-creatinine,Creatinine mg/ml,Urinary biomarker of kidney function,float, mg/ml
+creatinine,Creatinine mg/ml,Urinary biomarker of kidney function,float,mg/ml
 LYVE1,LYVE1 ng/ml,"Urinary levels of Lymphatic vessel endothelial hyaluronan receptor 1, a protein that may play a role in tumor metastasis",float,ng/ml
 REG1B,REG1B ng/ml,Urinary levels of a protein that may be associated with pancreas regeneration.,float,ng/ml
 TFF1,TFF1 ng/ml,"Urinary levels of Trefoil Factor 1, which may be related to regeneration and repair of the urinary tract",float,ng/ml
