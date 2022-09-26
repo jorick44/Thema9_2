@@ -9,13 +9,13 @@ output: pdf_document
 
 *14-9-2022*
 
--   created git
+-   created git.
 
 -   selected dataset: <https://www.kaggle.com/datasets/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer?select=Debernardi+et+al+2020+data.csv>
 
--   started EDA
+-   started EDA.
 
--   finished codebook
+-   finished codebook.
 
 ## Dag 2
 
@@ -25,7 +25,7 @@ output: pdf_document
 
 -   research question: Can a model be trained using machine learning techniques to detect if a person has pancreatic cancer using data from a urine sample?
 
--   made sure the data loaded correctly
+-   made sure the data loaded correctly.
 
 ## Dag 3
 
@@ -39,19 +39,19 @@ output: pdf_document
 
 *20-9-2022*
 
--   explored distribution of data using box-plots
+-   explored distribution of data using box-plots.
 
--   explored distribution of grouped data using box-plots
+-   explored distribution of grouped data using box-plots.
 
--   made a second dataframe containing log transformed values
+-   made a second dataframe containing log transformed values.
 
 ## Dag 5
 
 22-9-2022
 
--   calculated skewness of untransformed data
+-   calculated skewness of untransformed data.
 
--   created qq_plots of transformed data
+-   created qq_plots of transformed data.
 
 ## Dag 6
 
@@ -61,6 +61,20 @@ output: pdf_document
 
 -   will create new dataset with only the relevant columns dropping: sample_id, patient_cohort, stage, benign_sample_diagnosis and plasma_CA19_9 due to it not being from urine.
 
--   fixed log transformation
+-   fixed log transformation.
 
--   created heatmap
+-   created heat-map.
+
+## Dag 7
+
+*26-9-2022*
+
+-   looked at class distribution.
+
+-   added new column containing if patient had cancer lumping the control and non cancer patients together.
+
+-   explored for significant differences in attributes using t tests.
+
+-   added more text and structure
+
+-   fixed grammar
