@@ -13,6 +13,7 @@ library(stringr)
 library(knitr)
 library(kableExtra)
 library(e1071) 
+library(foreign)
 ```
 
 # Research question
@@ -21,7 +22,7 @@ How accurate can a model be trained to detect the difficult to diagnose pancreat
 
 # Codebook
 
-In this EDA we will explore the data downloaded from [[here]{.underline}](https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer). For future reference we will describe the data in the codebook below.
+In this EDA we will explore the data downloaded from [[here]{.ul}](https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer). For future reference we will describe the data in the codebook below.
 
 ```{r codebook, echo=TRUE}
 codebook <- read.delim("Data/codebook.csv", sep = ",")
@@ -43,7 +44,7 @@ str(data)
 
 Thus far it seems to have loaded correctly.
 
-We will also check the first few records to maybe catch some posible errors.
+We will also check the first few records to maybe catch some possible errors.
 
 ```{r head}
 head(data)
@@ -362,7 +363,7 @@ grid.arrange(tgp1, tgp2, tgp3, tgp4, tgp5, tgp6, nrow = 3)
 
 This data looks more normalized than before.
 
-However it's good practise to test normality after transformations.
+However it's good practice to test normality after transformations.
 
 ```{r qqlpots, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="qqplots displaying normalcy"}
 shapiro.test(trans$plasma_CA19_9)
@@ -428,7 +429,7 @@ REG1 A and B seem moderately correlated (`r cor_matrix[4,6]`), otherwise no real
 
 Now we also should check if any variable is seemingly influential for the diagnosis so we can see later if the machine learning picks up on this.
 
-```{r tests, message=FALSE, warning=FALSE}
+```{r t-tests, message=FALSE, warning=FALSE}
 new_data$has_cancer <- ifelse(new_data$diagnosis == 3, 1, 0)
 new_data$has_cancer <- factor(new_data$has_cancer)
 
@@ -442,3 +443,8 @@ t.test(new_data$REG1A ~ new_data$has_cancer)
 ```
 
 No p-value except Creatinine seems to be small enough to not be statistically significant. We will expect to see this in the model.
+
+```{r finalization of data}
+finalData <- new_data[,c(2:3, 5:10)]
+write.arff(finalData, "Data/data.arff")
+```

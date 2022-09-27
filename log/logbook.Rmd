@@ -78,3 +78,13 @@ output: pdf_document
 -   added more text and structure
 
 -   fixed grammar
+
+## Dag 8
+
+*27-9-2022*
+
+-   evaluated EDA of Wouter Z.
+
+-   finalized the data set .
+
+-   loaded data in weka and found that SimpleLogistic can predict with a 83.5% accuracy.
