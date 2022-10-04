@@ -1,10 +1,13 @@
 ---
-title: "EDA Jorick Baron"
+title: "Resultaten & Conclusion"
 author: "Jorick Baron"
+date: '2022-10-03'
 output: pdf_document
 ---
 
-```{r setup, message=FALSE}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
 library(tidyr)
 library(dplyr)
 library(ggplot2)
@@ -16,104 +19,37 @@ library(e1071)
 library(foreign)
 ```
 
-# Research question
+\pagebreak
 
-How accurate can a model be trained to detect the difficult to diagnose pancreatic cancer utilising a patient's urine sample?
+# Results
 
-# Codebook
+## Codebook
 
-In this EDA we will explore the data downloaded from [[here]{.underline}](https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer). For future reference we will describe the data in the codebook below.
+To aid in the understanding of the data a codebook explaining every variable in the data is displayed bellow.
 
-```{r codebook, echo=TRUE}
+```{r codebook, echo=FALSE}
 codebook <- read.delim("Data/codebook.csv", sep = ",")
 kable(codebook, caption = "Codebook", align = "lcccr", booktabs = T) %>%
   kable_styling(latex_options = c("scale_down"))
 ```
 
-\pagebreak
+## Loading The Data
 
-# Loading data
+For this project the data from <https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer> was used. Upon loading the data the first few data entries where checked using the head function, this revealed many NAs.
 
-First we will load in the data and to check if it has loaded in properly we look at the structure of the loaded data.
-
-```{r structure, echo=TRUE}
+```{r head, echo=FALSE}
 data <- read.table(file="Data/source/Debernardi_et_al_2020_data.csv", sep = ",",
                    header = T, na.strings = "")
-str(data)
-```
-
-Thus far it seems to have loaded correctly.
-
-We will also check the first few records to maybe catch some possible errors.
-
-```{r head}
 head(data)
 ```
 
-The data seems to have quite a few NAs, reading further into the description most NAs would be expected i.e. no stage if there is no cancer thus an NA.
+The ones from the stage column can be explained because only patients with cancer can have a stage. And those from benign_sample_diagnosis are there because there has to be a non-cancerous diagnosis. Reading in the source the NAs in the colums plasma_CA19_9 and REG1A are there because they were not measured in every sample, thus they contain NAs. From this the conclusion is that the data is intact and further processing can be applied.
 
-## NAs
+## Exploring & Analysing
 
-Let's check that nothing went wrong with those two anyway.
+When exploring the data for processing a boxplot to investigate the distribution of every numeric variable was created.
 
-```{r check NA diagnosis}
-healthy <- subset(data, diagnosis == 1, select = c(diagnosis, stage, benign_sample_diagnosis))
-cancerfree <- subset(data, diagnosis == 2, select = c(diagnosis, stage, benign_sample_diagnosis))
-cancerous <- subset(data, diagnosis == 3, select = c(diagnosis, stage, benign_sample_diagnosis))
-
-stage_na_count <- sum(is.na(data$stage))
-bsd_na_count <- sum(is.na(data$benign_sample_diagnosis))
-paste("all these numbers should be the same number", 
-      stage_na_count - nrow(cancerfree), bsd_na_count - nrow(cancerous), nrow(healthy))
-```
-
-Those numbers lined up to expectations.
-
-The NAs in columns "plasma_CA19_9" and "REG1A" are supposed to be there because not every patient had been fully tested:\
-"REG1A ... Only assessed in 306 patients", "plasma_CA19_9 ... Only assessed in 350 patients" see Debernardi et al 2020 documentation.csv in the source files.\
-However to make sure everything is correct these numbers will be tested.
-
-```{r check NA biomarkers}
-n_plasma_CA19_9 <- nrow(data) - sum(is.na(data$plasma_CA19_9))
-n_REG1A <- nrow(data) - sum(is.na(data$REG1A))
-paste("REG1A:", n_REG1A, "plasma_CA19_9:", n_plasma_CA19_9)
-```
-
-These numbers are correct.
-
-Are there more NAs?
-
-```{r final NA check}
-sum(is.na(data[, c(1:6, 10:13)]))
-```
-
-0 NAs remaining.
-
-# Data exploration
-
-## Distribution
-
-Class label checking the different diagnoses should be in similar number to each diagnosis.
-
-```{r}
-paste("Amount of patients with diagnosis 1:", nrow(subset(data, diagnosis == 1)))
-paste("Amount of patients with diagnosis 2:", nrow(subset(data, diagnosis == 2)))
-paste("Amount of patients with diagnosis 3:", nrow(subset(data, diagnosis == 3)))
-```
-
-These are quite balanced and should not influence statistics.
-
-Let's look at a summary of the data for a quick overview of the distributions.
-
-```{r sumaries}
-summary(data[,c(4, 9:14)])
-```
-
-Much of the data seems to be imbalanced with outliers.
-
-Now let's take a closer look at the data itself using box-plots.
-
-```{r boxplots ungrouped, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, paged.print=FALSE, fig.cap="boxplots of diferent values"}
+```{r boxplot, echo=FALSE, fig.height=5, fig.width=10, fig.cap="A boxplot displaying the distribution of all numeric values in the data", warning=FALSE}
 p1<- ggplot(data=data)+
   geom_boxplot(mapping = aes(x = "",
                             y = age))+
@@ -164,11 +100,11 @@ p7<- ggplot(data=data)+
 grid.arrange(p1, p2, p3, p4, p5, p6, p7, nrow = 2)
 ```
 
-There are many outliers to take a good look at the whiskers y-limits are in place. Still it's a lot, maybe adding another dimension can correct this.
+\pagebreak
 
-To add this extra dimension let's look at the difference in diagnoses. To properly do this we will also assign levels to the diagnosis column in the dataframe.
+In this figure it became clear that the distributions of most variables seem highly skewed, to investigate this another boxplot was made to see if this was due to the influence of the label
 
-```{r boxplot grouped, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="boxplots with added dimension (diagnosis)"}
+```{r boxplot grouped, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="boxplots with added dimension (diagnosis)", echo=FALSE}
 data$diagnosis <- factor(data$diagnosis)
 
 gp1 <- ggplot(data = data)+
@@ -253,30 +189,26 @@ gp7 <- ggplot(data = data)+
   ylab("REG1A in ng/ml")+
   ylim(0,5000)
 
-grid.arrange(gp1, gp2, gp3, gp4, gp5, gp6, gp7, nrow = 3)
+grid.arrange(gp1, gp2, gp3, gp4, gp5, gp6, gp7, nrow = 4)
 ```
 
-The data still has many outliers but by many columns a pattern does emerge.
+\pagebreak
 
-## Log transformation
+It seems something else is at play to cause this perceived skewness. A statistical test using the skewness function in R can be used to test if the data is skewed and in what direction.
 
-Let's use statistical tests to test the skewness to see how imbalanced the data is.
-
-```{r skewness}
-skewness(data$age) 
-skewness(data$plasma_CA19_9, na.rm = T)
-skewness(data$creatinine)
-skewness(data$LYVE1)
-skewness(data$REG1B)
-skewness(data$TFF1)
-skewness(data$REG1A, na.rm = T) 
+```{r skew, echo=FALSE}
+paste("skewness of age:", skewness(data$age))
+paste("skewness of plasma_CA19_9:", skewness(data$plasma_CA19_9, na.rm = T))
+paste("skewness of creatinine:", skewness(data$creatinine))
+paste("skewness of LYVE1:", skewness(data$LYVE1))
+paste("skewness of REG1B:", skewness(data$REG1B))
+paste("skewness of TFF1:", skewness(data$TFF1))
+paste("skewness of REG1A:", skewness(data$REG1A, na.rm = T))
 ```
 
-Here we see that everything is skewed greatly except age.
+This test proves that all but age is significantly skewed, since everything greater than a 1 or smaller than -1 is significant. To combat this skewness the data can be log transformed, scaling it logarithmically makes sense when the data can not be negative and seems to have expectational differences.
 
-A way of dealing with this skewness is to apply a log transformation on the data due to the high positively skewed data.
-
-```{r log transformation}
+```{r trans boxplots, echo=FALSE, fig.height=10, fig.width=15, message=FALSE, warning=FALSE, fig.cap="boxplot of log transformed data"}
 trans <- as.data.frame(log(data$plasma_CA19_9))
 names(trans) <- "plasma_CA19_9"
 trans$creatinine <- log(data$creatinine)
@@ -285,12 +217,6 @@ trans$REG1B <- log(data$REG1B)
 trans$TFF1 <- log(data$TFF1)
 trans$REG1A <- log(data$REG1A + 1)
 trans$diagnosis <- data$diagnosis
-head(trans)
-```
-
-Now having transformed the data lets see how this influences the distribution.
-
-```{r boxplot transformed data, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="boxplots of transformed values"}
 
 tgp1 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = diagnosis,
@@ -361,11 +287,11 @@ tgp6 <- ggplot(data = trans)+
 grid.arrange(tgp1, tgp2, tgp3, tgp4, tgp5, tgp6, nrow = 3)
 ```
 
-This data looks more normalized than before.
+\pagebreak
 
-However it's good practice to test normality after transformations.
+looking at the data now it seems much less skewed however after a data transformation the normalcy should be tested this can be done using both a qq_plot and a shapiro.test.
 
-```{r qqlpots, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="qqplots displaying normalcy"}
+```{r normalcy, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="qqplots displaying normalcy", echo=FALSE}
 shapiro.test(trans$plasma_CA19_9)
 qq1 <- ggplot(trans, aes(sample = plasma_CA19_9, colour = diagnosis)) +
   stat_qq() +
@@ -405,46 +331,27 @@ qq6 <- ggplot(trans, aes(sample = REG1A, colour = diagnosis)) +
 grid.arrange(qq1, qq2, qq3, qq4, qq5, qq6, nrow = 2)
 ```
 
-The data is despite the transformation still not fully normalised however we can still continue but this should be kept this in mind in case of future problems.
+These variables are obviously not normally distributed due to none of them being above a p-value of 0.05, meaning that the null-hypothesis of the data being normaly distributed is rejected.
 
-## Correlations
+\pagebreak
 
-Now using the transformed data let's create a new dataframe.
+The final analysis is to explore if any variables are correlated this can be displayed using a heat-map.
 
-```{r new dataframe}
+```{r heatmap, fig.height=10, fig.width=20, fig.cap="heatmap displaying correlation of values", echo=FALSE}
 new_data <- cbind(data[3:6], trans[2:6])
-```
-
-Using the new dataframe let's explore if the data is correlated.
-
-```{r heatmap, fig.height=10, fig.width=20, fig.cap="heatmap displaying correlation of values"}
 matrix_data <- drop_na(new_data[,c(2, 5:9)])
 cor_matrix <- cor(matrix_data)
-heatmap(cor_matrix, scale = "column", col = heat.colors(5, rev = T))
+heatmap(cor_matrix, scale = "column", col = heat.colors(5, rev = T), Colv = NA, Rowv = NA)
 legend(x="right", legend=c("full","strong", "medium", "minimal", "none"),fill=heat.colors(5))
-title(main = "Heatmap depicting correlations")
+title(main = "Heatmap depicting correlations", line = 3, sub = "")
 ```
+
+\pagebreak
 
 REG1 A and B seem moderately correlated (`r cor_matrix[4,6]`), otherwise no real strong correlation is observed.
 
-Now we also should check if any variable is seemingly influential for the diagnosis so we can see later if the machine learning picks up on this.
+# Conclusion
 
-```{r t-tests, message=FALSE, warning=FALSE}
-new_data$has_cancer <- ifelse(new_data$diagnosis == 3, 1, 0)
-new_data$has_cancer <- factor(new_data$has_cancer)
+## Final Results
 
-
-t.test(new_data$age ~ new_data$has_cancer)
-t.test(new_data$creatinine ~ new_data$has_cancer)
-t.test(new_data$LYVE1 ~ new_data$has_cancer)
-t.test(new_data$REG1B ~ new_data$has_cancer)
-t.test(new_data$TFF1 ~ new_data$has_cancer)
-t.test(new_data$REG1A ~ new_data$has_cancer)
-```
-
-No p-value except Creatinine seems to be small enough to not be statistically significant. We will expect to see this in the model.
-
-```{r finalization of data}
-finalData <- new_data[,c(2:3, 5:10)]
-write.arff(finalData, "Data/data.arff")
-```
+The final data set has had all numeric values except age log-transformed to reduce the skew but this left the data unnormal and also columns: sample_id, patient_cohort, sample_origin, stage and benign_sample_diagnosis dropped because them not being suitable for machine learning, furthermore collum diagnosis has been replaced with has_cancer because the research is focused to detect cancer. And plasma_CA19_9 has been dropped because in this research we focus on data that can be gathered from a urine sample. The data should however be useful and relaiable for machine learning.
