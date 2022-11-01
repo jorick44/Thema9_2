@@ -16,13 +16,15 @@ library(e1071)
 library(foreign)
 ```
 
-# Research question
+# Start of research
+
+## Research question
 
 How accurate can a model be trained to detect the difficult to diagnose pancreatic cancer utilising a patient's urine sample?
 
-# Codebook
+## Codebook
 
-In this EDA we will explore the data downloaded from [[here]{.underline}](https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer). For future reference we will describe the data in the codebook below.
+In this EDA we will explore the data downloaded from [[here]{.ul}](https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer). For future reference we will describe the data in the codebook below.
 
 ```{r codebook, echo=TRUE}
 codebook <- read.delim("Data/codebook.csv", sep = ",")
@@ -32,13 +34,18 @@ kable(codebook, caption = "Codebook", align = "lcccr", booktabs = T) %>%
 
 \pagebreak
 
-# Loading data
+## Loading data
 
 First we will load in the data and to check if it has loaded in properly we look at the structure of the loaded data.
 
 ```{r structure, echo=TRUE}
-data <- read.table(file="Data/source/Debernardi_et_al_2020_data.csv", sep = ",",
+data <- read.table(file="Data/source/Debernardi et al 2020 data.csv", sep = ",",
                    header = T, na.strings = "")
+data$has_cancer <- ifelse(data$diagnosis == 3, 1, 0)
+data$has_cancer <- factor(data$has_cancer)
+data$sex <- factor(data$sex)
+data <- subset(data, select = c(-diagnosis))
+
 str(data)
 ```
 
@@ -56,15 +63,14 @@ The data seems to have quite a few NAs, reading further into the description mos
 
 Let's check that nothing went wrong with those two anyway.
 
-```{r check NA diagnosis}
-healthy <- subset(data, diagnosis == 1, select = c(diagnosis, stage, benign_sample_diagnosis))
-cancerfree <- subset(data, diagnosis == 2, select = c(diagnosis, stage, benign_sample_diagnosis))
-cancerous <- subset(data, diagnosis == 3, select = c(diagnosis, stage, benign_sample_diagnosis))
+```{r check NA has_cancer}
+healthy <- subset(data, has_cancer == 0, select = c(has_cancer, stage, benign_sample_diagnosis))
+cancerous <- subset(data, has_cancer == 1, select = c(has_cancer, stage, benign_sample_diagnosis))
 
 stage_na_count <- sum(is.na(data$stage))
-bsd_na_count <- sum(is.na(data$benign_sample_diagnosis))
+bsd_na_count <- sum(is.na(data$benign_sample_has_cancer))
 paste("all these numbers should be the same number", 
-      stage_na_count - nrow(cancerfree), bsd_na_count - nrow(cancerous), nrow(healthy))
+      bsd_na_count - nrow(cancerous), nrow(healthy))
 ```
 
 Those numbers lined up to expectations.
@@ -84,7 +90,7 @@ These numbers are correct.
 Are there more NAs?
 
 ```{r final NA check}
-sum(is.na(data[, c(1:6, 10:13)]))
+sum(is.na(data[, c(1:5, 9:12)]))
 ```
 
 0 NAs remaining.
@@ -93,12 +99,11 @@ sum(is.na(data[, c(1:6, 10:13)]))
 
 ## Distribution
 
-Class label checking the different diagnoses should be in similar number to each diagnosis.
+Class label checking the different diagnoses should be in similar number to each has_cancer.
 
 ```{r}
-paste("Amount of patients with diagnosis 1:", nrow(subset(data, diagnosis == 1)))
-paste("Amount of patients with diagnosis 2:", nrow(subset(data, diagnosis == 2)))
-paste("Amount of patients with diagnosis 3:", nrow(subset(data, diagnosis == 3)))
+paste("Amount of patients without cancer:", nrow(subset(data, has_cancer == 0)))
+paste("Amount of patients with cancer:", nrow(subset(data, has_cancer == 1)))
 ```
 
 These are quite balanced and should not influence statistics.
@@ -122,138 +127,111 @@ p1<- ggplot(data=data)+
 
 p2<- ggplot(data=data)+
   geom_boxplot(mapping = aes(x = "",
-                            y = plasma_CA19_9))+
-  ylab("plasma_CA19_9 in U/ml") + 
-  xlab(NULL)+
-  ylim(0,500)
-
-p3<- ggplot(data=data)+
-  geom_boxplot(mapping = aes(x = "",
                             y = creatinine))+
   ylab("creatinine in mg/ml") + 
   xlab(NULL)
 
-p4<- ggplot(data=data)+
+p3<- ggplot(data=data)+
   geom_boxplot(mapping = aes(x = "",
                             y = LYVE1))+
   ylab("LYVE1 in ng/ml") + 
   xlab(NULL)+
   ylim(0,17)
 
-p5<- ggplot(data=data)+
+p4<- ggplot(data=data)+
   geom_boxplot(mapping = aes(x = "",
                             y = REG1B))+
   ylab("REG1B in ng/ml") + 
   xlab(NULL)+
   ylim(0,600)
 
-p6<- ggplot(data=data)+
+p5<- ggplot(data=data)+
   geom_boxplot(mapping = aes(x = "",
                             y = TFF1))+
   ylab("TFF1 in ng/ml") + 
   xlab(NULL)+
   ylim(0,5000)
 
-p7<- ggplot(data=data)+
+p6<- ggplot(data=data)+
   geom_boxplot(mapping = aes(x = "",
                             y = REG1A))+
   ylab("REG1A in ng/ml") + 
   xlab(NULL) +
   ylim(0,5000)
 
-grid.arrange(p1, p2, p3, p4, p5, p6, p7, nrow = 2)
+grid.arrange(p1, p2, p3, p4, p5, p6, nrow = 2)
 ```
 
 There are many outliers to take a good look at the whiskers y-limits are in place. Still it's a lot, maybe adding another dimension can correct this.
 
-To add this extra dimension let's look at the difference in diagnoses. To properly do this we will also assign levels to the diagnosis column in the dataframe.
+To add this extra dimension let's look at the difference in diagnoses. To properly do this we will also assign levels to the has_cancer column in the dataframe.
 
-```{r boxplot grouped, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="boxplots with added dimension (diagnosis)"}
-data$diagnosis <- factor(data$diagnosis)
-
+```{r boxplot grouped, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="boxplots with added dimension (has_cancer)"}
 gp1 <- ggplot(data = data)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = age,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
     scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("age in years")
 
 gp2 <- ggplot(data = data)+
-  geom_boxplot(mapping = aes(x = diagnosis,
-                            y = plasma_CA19_9,
-                            group=diagnosis,
-                            fill=diagnosis))+
-    scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
-                            "pancreatic cancer"))+
-  xlab("diagnosis")+
-  ylab("plasma_CA19_9 in U/ml")+
-  ylim(0,500)
-
-gp3 <- ggplot(data = data)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = creatinine,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
     scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("creatinine in mg/ml")
 
-gp4 <- ggplot(data = data)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+gp3 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = LYVE1,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
     scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("LIVE1 in ng/ml")+
   ylim(0,17)
 
-gp5 <- ggplot(data = data)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+gp4 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = REG1B,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
     scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("REG1B in ng/ml")+
   ylim(0,600)
 
-gp6 <- ggplot(data = data)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+gp5 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = TFF1,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
   scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("TFF1 in ng/ml")+
   ylim(0,5000)
 
-gp7 <- ggplot(data = data)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+gp6 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = REG1A,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
     scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("REG1A in ng/ml")+
   ylim(0,5000)
 
-grid.arrange(gp1, gp2, gp3, gp4, gp5, gp6, gp7, nrow = 3)
+grid.arrange(gp1, gp2, gp3, gp4, gp5, gp6, nrow = 2)
 ```
 
 The data still has many outliers but by many columns a pattern does emerge.
@@ -264,7 +242,6 @@ Let's use statistical tests to test the skewness to see how imbalanced the data 
 
 ```{r skewness}
 skewness(data$age) 
-skewness(data$plasma_CA19_9, na.rm = T)
 skewness(data$creatinine)
 skewness(data$LYVE1)
 skewness(data$REG1B)
@@ -277,14 +254,13 @@ Here we see that everything is skewed greatly except age.
 A way of dealing with this skewness is to apply a log transformation on the data due to the high positively skewed data.
 
 ```{r log transformation}
-trans <- as.data.frame(log(data$plasma_CA19_9))
-names(trans) <- "plasma_CA19_9"
-trans$creatinine <- log(data$creatinine)
-trans$LYVE1 <- log(data$LYVE1)
-trans$REG1B <- log(data$REG1B)
-trans$TFF1 <- log(data$TFF1)
-trans$REG1A <- log(data$REG1A + 1)
-trans$diagnosis <- data$diagnosis
+trans <- as.data.frame(log2(data$creatinine))
+names(trans) <- "creatinine"
+trans$LYVE1 <- log2(data$LYVE1)
+trans$REG1B <- log2(data$REG1B)
+trans$TFF1 <- log2(data$TFF1)
+trans$REG1A <- log2(data$REG1A + 1)
+trans$has_cancer <- data$has_cancer
 head(trans)
 ```
 
@@ -293,72 +269,56 @@ Now having transformed the data lets see how this influences the distribution.
 ```{r boxplot transformed data, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="boxplots of transformed values"}
 
 tgp1 <- ggplot(data = trans)+
-  geom_boxplot(mapping = aes(x = diagnosis,
-                            y = plasma_CA19_9,
-                            group=diagnosis,
-                            fill=diagnosis))+
-    scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
-                            "pancreatic cancer"))+
-  xlab("diagnosis")+
-  ylab("plasma_CA19_9 in U/ml (log transformed)")
-
-tgp2 <- ggplot(data = trans)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = creatinine,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
     scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("creatinine in mg/ml (log transformed)")
 
-tgp3 <- ggplot(data = trans)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+tgp2 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = LYVE1,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
     scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("LIVE1 in ng/ml (log transformed)")
 
-tgp4 <- ggplot(data = trans)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+tgp3 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = REG1B,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
     scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("REG1B in ng/ml (log transformed)")
 
-tgp5 <- ggplot(data = trans)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+tgp4 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = TFF1,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
   scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("TFF1 in ng/ml (log transformed)")
 
-tgp6 <- ggplot(data = trans)+
-  geom_boxplot(mapping = aes(x = diagnosis,
+tgp5 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = has_cancer,
                             y = REG1A,
-                            group=diagnosis,
-                            fill=diagnosis))+
+                            group=has_cancer,
+                            fill=has_cancer))+
     scale_x_discrete(labels=c("control",
-                            "benign hepatobiliary disease",
                             "pancreatic cancer"))+
-  xlab("diagnosis")+
+  xlab("has_cancer")+
   ylab("REG1A in ng/ml (log transformed)")
 
-grid.arrange(tgp1, tgp2, tgp3, tgp4, tgp5, tgp6, nrow = 3)
+grid.arrange(tgp1, tgp2, tgp3, tgp4, tgp5, nrow = 2)
 ```
 
 This data looks more normalized than before.
@@ -366,43 +326,38 @@ This data looks more normalized than before.
 However it's good practice to test normality after transformations.
 
 ```{r qqlpots, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="qqplots displaying normalcy"}
-shapiro.test(trans$plasma_CA19_9)
-qq1 <- ggplot(trans, aes(sample = plasma_CA19_9, colour = diagnosis)) +
-  stat_qq() +
-  stat_qq_line() +
-  ggtitle("plasma_CA19_9")
 
-shapiro.test(trans$creatinine)
-qq2 <- ggplot(trans, aes(sample = creatinine, colour = diagnosis)) +
+swt1 <- shapiro.test(trans$creatinine)
+qq1 <- ggplot(trans, aes(sample = creatinine, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("creatinine")
 
-shapiro.test(trans$LYVE1)
-qq3 <- ggplot(trans, aes(sample = LYVE1, colour = diagnosis)) +
+swt2 <- shapiro.test(trans$LYVE1)
+qq2 <- ggplot(trans, aes(sample = LYVE1, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("LYVE1")
 
-shapiro.test(trans$REG1B)
-qq4 <- ggplot(trans, aes(sample = REG1B, colour = diagnosis)) +
+swt3 <- shapiro.test(trans$REG1B)
+qq3 <- ggplot(trans, aes(sample = REG1B, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("REG1B")
 
-shapiro.test(trans$TFF1)
-qq5 <- ggplot(trans, aes(sample = TFF1, colour = diagnosis)) +
+swt4 <- shapiro.test(trans$TFF1)
+qq4 <- ggplot(trans, aes(sample = TFF1, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("TFF1")
 
-shapiro.test(trans$REG1A)
-qq6 <- ggplot(trans, aes(sample = REG1A, colour = diagnosis)) +
+swt5 <- shapiro.test(trans$REG1A)
+qq5 <- ggplot(trans, aes(sample = REG1A, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
   ggtitle("REG1A")
 
-grid.arrange(qq1, qq2, qq3, qq4, qq5, qq6, nrow = 2)
+grid.arrange(qq1, qq2, qq3, qq4, qq5, nrow = 2)
 ```
 
 The data is despite the transformation still not fully normalised however we can still continue but this should be kept this in mind in case of future problems.
@@ -412,39 +367,54 @@ The data is despite the transformation still not fully normalised however we can
 Now using the transformed data let's create a new dataframe.
 
 ```{r new dataframe}
-new_data <- cbind(data[3:6], trans[2:6])
+new_data <- cbind(data[4:5], trans)
+new_data$sex <- factor(new_data$sex)
 ```
 
 Using the new dataframe let's explore if the data is correlated.
 
 ```{r heatmap, fig.height=10, fig.width=20, fig.cap="heatmap displaying correlation of values"}
-matrix_data <- drop_na(new_data[,c(2, 5:9)])
+matrix_data <- drop_na(new_data[,c(1, 3:7)])
 cor_matrix <- cor(matrix_data)
-heatmap(cor_matrix, scale = "column", col = heat.colors(5, rev = T))
+heatmap(cor_matrix, scale = "column", col = heat.colors(5, rev = T), main = "Heatmap depicting correlations", symm = T, Rowv = NA, Colv = NA)
 legend(x="right", legend=c("full","strong", "medium", "minimal", "none"),fill=heat.colors(5))
-title(main = "Heatmap depicting correlations")
 ```
 
 REG1 A and B seem moderately correlated (`r cor_matrix[4,6]`), otherwise no real strong correlation is observed.
 
-Now we also should check if any variable is seemingly influential for the diagnosis so we can see later if the machine learning picks up on this.
+Now we also should check if any variable is seemingly influential for the has_cancer so we can see later if the machine learning picks up on this.
 
 ```{r t-tests, message=FALSE, warning=FALSE}
-new_data$has_cancer <- ifelse(new_data$diagnosis == 3, 1, 0)
-new_data$has_cancer <- factor(new_data$has_cancer)
 
-
-t.test(new_data$age ~ new_data$has_cancer)
-t.test(new_data$creatinine ~ new_data$has_cancer)
-t.test(new_data$LYVE1 ~ new_data$has_cancer)
-t.test(new_data$REG1B ~ new_data$has_cancer)
-t.test(new_data$TFF1 ~ new_data$has_cancer)
-t.test(new_data$REG1A ~ new_data$has_cancer)
+t1 <- t.test(new_data$age ~ new_data$has_cancer)
+t2 <-t.test(new_data$creatinine ~ new_data$has_cancer)
+t3 <-t.test(new_data$LYVE1 ~ new_data$has_cancer)
+t4 <-t.test(new_data$REG1B ~ new_data$has_cancer)
+t5 <-t.test(new_data$TFF1 ~ new_data$has_cancer)
+t6 <-t.test(new_data$REG1A ~ new_data$has_cancer)
 ```
+
+| Variable   | p-value        | Col3 |
+|------------|----------------|------|
+| Age        | `r t1$p.value` | yes  |
+| Creatinine | `r t2$p.value` | no   |
+| LYVE1      | `r t3$p.value` | yes  |
+| REG1B      | `r t4$p.value` | yes  |
+| TFF1       | `r t5$p.value` | yes  |
+| REG1A      | `r t6$p.value` | yes  |
+
+: t test reults and interpertation
 
 No p-value except Creatinine seems to be small enough to not be statistically significant. We will expect to see this in the model.
 
 ```{r finalization of data}
-finalData <- new_data[,c(2:3, 5:10)]
-write.arff(finalData, "Data/data.arff")
+write.arff(new_data, "Data/data.arff")
+```
+
+# Machine learning
+
+```{r}
+algores <- read.delim("Data/algores.csv", sep = ",")
+kable(algores, caption = "Preformance of diferent algorithms", align = "lcccccccr", booktabs = T) %>%
+  kable_styling(latex_options = c("scale_down", "HOLD_position"))
 ```
