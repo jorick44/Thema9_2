@@ -1,7 +1,7 @@
 # Pancreatic cancer predictor
 
 *Author: Jorick Baron\
-Date:3-11-22\
+Date: 3-11-22\
 Version: 1.0*
 
 ## Description
@@ -24,4 +24,4 @@ The program runs as a java jar file, please make sure your computer is capable o
 
 If you have any questions please contact me at.
 
-[*j.baron\@st.hanze.nl*]{.ul}
+*j.baron@st.hanze.nl*
