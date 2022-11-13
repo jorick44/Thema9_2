@@ -1,0 +1,414 @@
+---
+title: "Pancreatic Cancer Prediction Report"
+author: "Jorick Baron"
+date: '2022-11-10'
+output: 
+  pdf_document: 
+    toc: yes
+bibliography: references.bib
+csl: cell-numeric.csl
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(e1071) 
+library(foreign)
+```
+
+```{r code}
+
+codebook <- read.delim("Data/codebook.csv", sep = ",")
+
+data <- read.table(file="Data/source/Debernardi et al 2020 data.csv", sep = ",",
+                   header = T, na.strings = "")
+data$has_cancer <- ifelse(data$diagnosis == 3, 1, 0)
+data$has_cancer <- factor(data$has_cancer)
+data$sex <- factor(data$sex)
+data <- subset(data, select = c(-diagnosis))
+
+data <- data[,c(4:5, 9:14)]
+
+p1<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = age))+
+  ylab("age in years") + 
+  xlab(NULL)
+
+p2<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = creatinine))+
+  ylab("creatinine in mg/ml") + 
+  xlab(NULL)
+
+p3<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = LYVE1))+
+  ylab("LYVE1 in ng/ml") + 
+  xlab(NULL)+
+  ylim(0,17)
+
+p4<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = REG1B))+
+  ylab("REG1B in ng/ml") + 
+  xlab(NULL)+
+  ylim(0,600)
+
+p5<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = TFF1))+
+  ylab("TFF1 in ng/ml") + 
+  xlab(NULL)+
+  ylim(0,5000)
+
+p6<- ggplot(data=data)+
+  geom_boxplot(mapping = aes(x = "",
+                            y = REG1A))+
+  ylab("REG1A in ng/ml") + 
+  xlab(NULL) +
+  ylim(0,5000)
+
+my_colours <- c("cyan3" ,"coral2")
+
+gp1 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = age,
+                            group=has_cancer,
+                            fill=has_cancer))+
+    scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("age in years")
+
+gp2 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = creatinine,
+                            group=has_cancer,
+                            fill=has_cancer))+
+    scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("creatinine in mg/ml")
+
+gp3 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = LYVE1,
+                            group=has_cancer,
+                            fill=has_cancer))+
+    scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("LIVE1 in ng/ml")+
+  ylim(0,17)
+
+gp4 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = REG1B,
+                            group=has_cancer,
+                            fill=has_cancer))+
+    scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("REG1B in ng/ml")+
+  ylim(0,600)
+
+gp5 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = TFF1,
+                            group=has_cancer,
+                            fill=has_cancer))+
+  scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("TFF1 in ng/ml")+
+  ylim(0,5000)
+
+gp6 <- ggplot(data = data)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = REG1A,
+                            group=has_cancer,
+                            fill=has_cancer))+
+    scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("REG1A in ng/ml")+
+  ylim(0,5000)
+
+s1 <- skewness(data$age) 
+s2 <- skewness(data$creatinine)
+s3 <- skewness(data$LYVE1)
+s4 <- skewness(data$REG1B)
+s5 <- skewness(data$TFF1)
+s6 <- skewness(data$REG1A, na.rm = T) 
+
+trans <- as.data.frame(log2(data$creatinine))
+names(trans) <- "creatinine"
+trans$LYVE1 <- log2(data$LYVE1)
+trans$REG1B <- log2(data$REG1B)
+trans$TFF1 <- log2(data$TFF1)
+trans$REG1A <- log2(data$REG1A + 1)
+trans$has_cancer <- data$has_cancer
+
+tgp1 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = creatinine,
+                            group=has_cancer,
+                            fill=has_cancer))+
+    scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("creatinine in mg/ml (log2 transformed)")
+
+tgp2 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = LYVE1,
+                            group=has_cancer,
+                            fill=has_cancer))+
+    scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("LIVE1 in ng/ml (log2 transformed)")
+
+tgp3 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = REG1B,
+                            group=has_cancer,
+                            fill=has_cancer))+
+    scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("REG1B in ng/ml (log2 transformed)")
+
+tgp4 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = TFF1,
+                            group=has_cancer,
+                            fill=has_cancer))+
+  scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("TFF1 in ng/ml (log2 transformed)")
+
+tgp5 <- ggplot(data = trans)+
+  geom_boxplot(mapping = aes(x = has_cancer,
+                            y = REG1A,
+                            group=has_cancer,
+                            fill=has_cancer))+
+    scale_x_discrete(labels=c("control",
+                            "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
+  xlab("has_cancer")+
+  ylab("REG1A in ng/ml (log2 transformed)")
+
+swt1 <- shapiro.test(trans$creatinine)
+qq1 <- ggplot(trans, aes(sample = creatinine, colour = has_cancer)) +
+  stat_qq() +
+  stat_qq_line() +
+  scale_color_manual(values=my_colours)+
+  ggtitle("creatinine")
+
+swt2 <- shapiro.test(trans$LYVE1)
+qq2 <- ggplot(trans, aes(sample = LYVE1, colour = has_cancer)) +
+  stat_qq() +
+  stat_qq_line() +
+  scale_color_manual(values=my_colours)+
+  ggtitle("LYVE1")
+
+swt3 <- shapiro.test(trans$REG1B)
+qq3 <- ggplot(trans, aes(sample = REG1B, colour = has_cancer)) +
+  stat_qq() +
+  stat_qq_line() +
+  scale_color_manual(values=my_colours)+
+  ggtitle("REG1B")
+
+swt4 <- shapiro.test(trans$TFF1)
+qq4 <- ggplot(trans, aes(sample = TFF1, colour = has_cancer)) +
+  stat_qq() +
+  stat_qq_line() +
+  scale_color_manual(values=my_colours)+
+  ggtitle("TFF1")
+
+swt5 <- shapiro.test(trans$REG1A)
+qq5 <- ggplot(trans, aes(sample = REG1A, colour = has_cancer)) +
+  stat_qq() +
+  stat_qq_line() +
+  scale_color_manual(values=my_colours)+
+  ggtitle("REG1A")
+
+new_data <- cbind(data[1:2], trans)
+new_data$sex <- factor(new_data$sex)
+
+matrix_data <- drop_na(new_data[,c(1, 3:7)])
+cor_matrix <- cor(matrix_data)
+
+t1 <- t.test(new_data$age ~ new_data$has_cancer)
+t2 <-t.test(new_data$creatinine ~ new_data$has_cancer)
+t3 <-t.test(new_data$LYVE1 ~ new_data$has_cancer)
+t4 <-t.test(new_data$REG1B ~ new_data$has_cancer)
+t5 <-t.test(new_data$TFF1 ~ new_data$has_cancer)
+t6 <-t.test(new_data$REG1A ~ new_data$has_cancer)
+
+algores <- read.delim("Data/algores.csv", sep = ",")
+```
+
+\newpage
+
+# Introduction
+
+Pancreatic cancer is a difficult to diagnose cancer and when a patient is diagnosed it's often too late with only 4% of patients remaining alive after 5 years after diagnosis @Pancreatic_cancer. Because of this an early diagnosis is of vital importance but, "There is no single diagnostic test that can tell you if you have pancreatic cancer. Definitive diagnosis requires a series of imaging scans, blood tests and biopsy---and those tests are typically only done only if you have symptoms." @pancreatic_cancer_screening. These methods are invasive and difficult to justify as a periodical screening tool, therefore an alternative method of diagnosing or predicting pancreatic cancer, that could also function as a screening tool, is worth researching. Using the data of 590 urine samples together with some patient data could it be possible to have a machine learning model that is capable to create a viable screening method for pancreatic cancer?
+
+## Research question
+
+How accurate can a model be trained to detect the difficult to diagnose pancreatic cancer utilising a patient's urine sample?
+
+# Material & Methods
+
+## Data source
+
+The data for this research project is from [[here]{.underline}](https://www.kaggle.com/datasets/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer)[,]{.underline} this data has been sampled from 590 patients and has been provided by: Barts Pancreas Tissue Bank, London, UK; Spanish National Cancer Research Centre, Madrid, Spain; Liverpool University, UK and University College London, UK.
+
+## Data cleaning
+
+The data downloaded from kaggle needed to be cleaned to make it viable for this research purpose.
+
+For this purpose the data has been explored using the R programming language and displayed in R markdown (R version 4.0.4) supported by the following packages: dplyr @dplyr, tiydr @tidyr, ggplot2 @ggplot2, gridExtra @gridExtra, knitr @knitr, kableExtra @KableExtra, e1071 @e1071 and foreign @foreign.
+
+The codebook below is to display and explain the data that was downloaded from kaggle.
+
+```{r codebook}
+kable(codebook, caption = "Codebook to explain each variable in the downloaded data.", align = "lcccr", booktabs = T) %>%
+  kable_styling(latex_options = c("scale_down", "HOLD_position"))
+```
+
+The project is focused on detecting cancer therefore the diagnosis column has been dropped and changed into the has_cancer column, with the values 0 for a control sample and 1 for a pancreatic cancer sample.\
+After this the dataset was trimmed to remove data that has either no realistic impact on if a patient has pancreatic cancer like sample origin, data that negativily impacts machine learning e.g. sample ids, data that is out of the scope of the project e.g. blood plasma data or data that we can not know of a fresh sample like stage.\
+Eventually ending up with our data consisting of patient age and sex and the following 5 bio-markers: `r names(data[3:7])`. The values of the bio-markers have also been log2 transformed to reduce the skewness in the data.
+
+| Variable   | Skewness | Interpretation            |
+|------------|----------|---------------------------|
+| age        | `r s1`   | Fairly symmetrical        |
+| creatinine | `r s2`   | Greatly positively skewed |
+| LYVE1      | `r s3`   | Greatly positively skewed |
+| REG1B      | `r s4`   | Greatly positively skewed |
+| TFF1       | `r s5`   | Greatly positively skewed |
+| REG1A      | `r s6`   | Greatly positively skewed |
+
+: The skewness in the untransformed data.
+
+The log transformed data contained less outliers and a better distributed dataset. But this data was not fully normally distributed but no issues relating to this uneven distribution occurred. A full in depth EDA detailing the process step by step can be found at [[at this github repository]{.underline}](https://github.com/jorick44/Thema9_2/tree/main/eda).
+
+# Results
+
+## Skew
+
+First the important task of exploring the data for potential mistakes or outliers has been carried out. To easily catch outliers a boxplot visualisation is applied, this boxplot will also be coloured based on the has_cancer boolean value to also show the difference in data between those with pancreatic cancer and without.
+
+```{r boxplots, warning=FALSE, fig.cap="Boxplots of age and the 5 bio-marker data (some figures has been croped for readablity).", fig.height=7.5, fig.width=15}
+grid.arrange(gp1, gp2, gp3, gp4, gp5, gp6, newpage = F, nrow = 2)
+```
+
+In the above boxplots it is visible the data contained many outliers however with how the outlyng data is located above the average at seemingly exponentially higher rates the question that these outliers are no outliers at all and that the data is simply in need of a restructuring to better display the full picture can be asked. This is further corroborated with the data of the skewness from table 2. And after applying the log2 transformation the following boxplots where produced.
+
+```{r log2 transformed data, fig.height=7.5, fig.width=15, warning=FALSE, fig.cap="Boxplots of the 5 bio-markers after log2 transformation."}
+grid.arrange(tgp1, tgp2, tgp3, tgp4, tgp5, newpage = F, nrow = 2)
+```
+
+The data after the transformation has visibly improved showing less outliers and not needing to be cropped to be visualised properly are notable improvements to the data quality.
+
+## Distribution
+
+However looking at if the data is normally distributed is something that is considered especially good practice after data transformation, shows the following.
+
+```{r qq plots, fig.height=5, fig.width=15, warning=FALSE, fig.cap="qqplots to show distribution, if the data is normally distributed the dots should follow the line."}
+grid.arrange(qq1, qq2, qq3, qq4, qq5, newpage = F, nrow =2)
+```
+
+The above qqplots are displaying that the data is not normally distributed. To aid in the interpretation of the qqplots the below table will display the results of a Shapiro-Wilk Normality Test.
+
+| Variable   | p-value          | Interpretation                        |
+|------------|------------------|---------------------------------------|
+| creatinine | `r swt1$p.value` | this data is not normally distributed |
+| LYVE1      | `r swt2$p.value` | this data is not normally distributed |
+| REG1B      | `r swt3$p.value` | this data is not normally distributed |
+| TFF1       | `r swt4$p.value` | this data is not normally distributed |
+| REG1A      | `r swt5$p.value` | this data is not normally distributed |
+
+: Results of the Shapiro-Wilk Normality Test and interpretation.
+
+Due to every p-value being below the standard alpha value of 0.05 the null hypothesis that the data is normally distributed is rejected for each variable. The fact that the data is not normally distributed is not fatal for machine learning but any result needs to be held under extra scrutiny.
+
+## Correlations
+
+Furthermore the data needed to be checked for correlations as highly correlated data can be counter-productive for machine learning. A good visualisation of correlations is a heatmap.
+
+```{r hat map, fig.height=5, fig.width=15, warning=FALSE, fig.cap="Correlations displayed in a heatmap"}
+heatmap(cor_matrix, scale = "none", col = heat.colors(6, rev = T), main = "Heatmap depicting correlations", symm = T, Rowv = NA, Colv = NA)
+legend(x="right", legend=c("full","very strong", "strong", "moderate", "weak", "negligible"),fill=heat.colors(6))
+```
+
+From this heatmap it is visible that REG1B and LYVE1 have correlations with other variables but with the highest correlation efficient between REG1B and REG1A (`r cor_matrix[4,6]`) is very strongly positively related but otherwise no datapoints are too strongly correlated.
+
+Finally the class label (has_cancer) has been tested against all the other data using a Welch Two Sample t-test to test if those datapoints are of influence to the class label.
+
+| Variable   | p-value        | Significant |
+|------------|----------------|-------------|
+| Age        | `r t1$p.value` | yes         |
+| Creatinine | `r t2$p.value` | no          |
+| LYVE1      | `r t3$p.value` | yes         |
+| REG1B      | `r t4$p.value` | yes         |
+| TFF1       | `r t5$p.value` | yes         |
+| REG1A      | `r t6$p.value` | yes         |
+
+: T-test results and interpretation.
+
+## Machine learning phase
+
+After having explored and transformed the data has been written to a .arff file to be ready for use in the weka machine learning workbench @frank2005weka. After this the data has been used to try and train many machine learning models using different algorithms, the algorithms were then evaluated on performance in 3 key aspects.
+
+```{r ml}
+kable(algores, caption = "Preformance of diferent algorithms", align = "lcccccccr", booktabs = T) %>%
+  kable_styling(latex_options = c("scale_down", "HOLD_position"))
+```
+
+The 3 key aspects as seen in the above table are percent correct since the model is expected to predict accurately, the true negative rate since it is unwanted for patients to pass undetected and area under the ROC because this is a value that gives insight in the performance of a model to distinguish between the classes.\
+The SimpleLogistic algorithm scores highest in 2 of those metrics and second best in the true negative rate metric. Because of this the SimpleLogistic model has been chosen to be applied into the program to be used to predict pancreatic cancer.
+
+[[In this repository]{.underline}](https://github.com/jorick44/Thema9_2/tree/main/mlwrapper) the java program to predict pancreatic cancer can be found along with a guide on how to use it in the repository's README.md. For a quick overview the program is run through the command line and expects a arff file as input, and will print out for each sample it's prediction on if it is from a patient with pancreatic cancer or not.
+
+\newpage
+
+# Discussion & Conclusion
+
+## Discussion
+
+Despite the fact that the data was not normally distributed the model seems to have handled this without any issues. Furthermore the data did only consist out of 590 samples, this seems to have been enough to train the model, but it is possible that a larger sample pool may have lead to a more accurate model.\
+
+## Conclusion
+
+With the machine learning results as seen in table 5 the answer to the research question is 83.19% which is quite accurate however not accurate enough to be a screening tool. \
+But perhaps as stated in the discussion more accuracy can be won by using a bigger sample size.
+
+## Future research
+
+The model could be used for another project. The minor Application Design is such a project. The classifier should be accessible for doctors or lab workers without a deep understanding of computers. That is why a desktop application could be made for use in hospitals, clinics or labratories to aid the prediction of pancreatic cancer. The only thing necessary is a urine sample something a patient can easily give to a doctor, who can send it to the lab to extract the data necessary for the model. For privacy the application should be a desktop application that can operate on a local network within the hospital/clinic to make outside attacks more difficult and the data more secure/private.
+
+\newpage
+
+# References

@@ -9,7 +9,6 @@ library(tidyr)
 library(dplyr)
 library(ggplot2)
 library(gridExtra)
-library(stringr)
 library(knitr)
 library(kableExtra)
 library(e1071) 
@@ -24,7 +23,7 @@ How accurate can a model be trained to detect the difficult to diagnose pancreat
 
 ## Codebook
 
-In this EDA we will explore the data downloaded from [[here]{.ul}](https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer). For future reference we will describe the data in the codebook below.
+In this EDA we will explore the data downloaded from [[here]{.underline}](https://www.kaggle.com/johnjdavisiv/urinary-biomarkers-for-pancreatic-cancer). For future reference we will describe the data in the codebook below.
 
 ```{r codebook, echo=TRUE}
 codebook <- read.delim("Data/codebook.csv", sep = ",")
@@ -54,26 +53,14 @@ Thus far it seems to have loaded correctly.
 We will also check the first few records to maybe catch some possible errors.
 
 ```{r head}
-head(data)
+kable(head(data), caption = "The first records of the loaded data", booktabs = T,
+      align = "lccccccccccccr") %>%
+  kable_styling(latex_options = c("scale_down"))
 ```
 
 The data seems to have quite a few NAs, reading further into the description most NAs would be expected i.e. no stage if there is no cancer thus an NA.
 
 ## NAs
-
-Let's check that nothing went wrong with those two anyway.
-
-```{r check NA has_cancer}
-healthy <- subset(data, has_cancer == 0, select = c(has_cancer, stage, benign_sample_diagnosis))
-cancerous <- subset(data, has_cancer == 1, select = c(has_cancer, stage, benign_sample_diagnosis))
-
-stage_na_count <- sum(is.na(data$stage))
-bsd_na_count <- sum(is.na(data$benign_sample_has_cancer))
-paste("all these numbers should be the same number", 
-      bsd_na_count - nrow(cancerous), nrow(healthy))
-```
-
-Those numbers lined up to expectations.
 
 The NAs in columns "plasma_CA19_9" and "REG1A" are supposed to be there because not every patient had been fully tested:\
 "REG1A ... Only assessed in 306 patients", "plasma_CA19_9 ... Only assessed in 350 patients" see Debernardi et al 2020 documentation.csv in the source files.\
@@ -167,6 +154,8 @@ There are many outliers to take a good look at the whiskers y-limits are in plac
 To add this extra dimension let's look at the difference in diagnoses. To properly do this we will also assign levels to the has_cancer column in the dataframe.
 
 ```{r boxplot grouped, fig.height=10, fig.width=20, message=FALSE, warning=FALSE, fig.cap="boxplots with added dimension (has_cancer)"}
+my_colours <- c("cyan3" ,"coral2")
+
 gp1 <- ggplot(data = data)+
   geom_boxplot(mapping = aes(x = has_cancer,
                             y = age,
@@ -174,6 +163,7 @@ gp1 <- ggplot(data = data)+
                             fill=has_cancer))+
     scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
   ylab("age in years")
 
@@ -184,6 +174,7 @@ gp2 <- ggplot(data = data)+
                             fill=has_cancer))+
     scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
   ylab("creatinine in mg/ml")
 
@@ -194,6 +185,7 @@ gp3 <- ggplot(data = data)+
                             fill=has_cancer))+
     scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
   ylab("LIVE1 in ng/ml")+
   ylim(0,17)
@@ -205,6 +197,7 @@ gp4 <- ggplot(data = data)+
                             fill=has_cancer))+
     scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
   ylab("REG1B in ng/ml")+
   ylim(0,600)
@@ -216,6 +209,7 @@ gp5 <- ggplot(data = data)+
                             fill=has_cancer))+
   scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
   ylab("TFF1 in ng/ml")+
   ylim(0,5000)
@@ -227,12 +221,15 @@ gp6 <- ggplot(data = data)+
                             fill=has_cancer))+
     scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
   ylab("REG1A in ng/ml")+
   ylim(0,5000)
 
 grid.arrange(gp1, gp2, gp3, gp4, gp5, gp6, nrow = 2)
 ```
+
+\newpage
 
 The data still has many outliers but by many columns a pattern does emerge.
 
@@ -241,17 +238,30 @@ The data still has many outliers but by many columns a pattern does emerge.
 Let's use statistical tests to test the skewness to see how imbalanced the data is.
 
 ```{r skewness}
-skewness(data$age) 
-skewness(data$creatinine)
-skewness(data$LYVE1)
-skewness(data$REG1B)
-skewness(data$TFF1)
-skewness(data$REG1A, na.rm = T) 
+s1 <- skewness(data$age) 
+s2 <- skewness(data$creatinine)
+s3 <- skewness(data$LYVE1)
+s4 <- skewness(data$REG1B)
+s5 <- skewness(data$TFF1)
+s6 <- skewness(data$REG1A, na.rm = T) 
 ```
 
-Here we see that everything is skewed greatly except age.
+| Variable   | Skewness | Interpretation            |
+|------------|----------|---------------------------|
+| age        | `r s1`   | Fairly symmetrical        |
+| creatinine | `r s2`   | Greatly positively skewed |
+| LYVE1      | `r s3`   | Greatly positively skewed |
+| REG1B      | `r s4`   | Greatly positively skewed |
+| TFF1       | `r s5`   | Greatly positively skewed |
+| REG1A      | `r s6`   | Greatly positively skewed |
+
+: Results of skewness test.
+
+Here we see that everything is greatly skewed except age.
 
 A way of dealing with this skewness is to apply a log transformation on the data due to the high positively skewed data.
+
+\newpage
 
 ```{r log transformation}
 trans <- as.data.frame(log2(data$creatinine))
@@ -261,7 +271,9 @@ trans$REG1B <- log2(data$REG1B)
 trans$TFF1 <- log2(data$TFF1)
 trans$REG1A <- log2(data$REG1A + 1)
 trans$has_cancer <- data$has_cancer
-head(trans)
+kable(head(trans), caption = "the first few records of the log2 transformed data",
+      align = "lccccr", booktabs = T) %>%
+  kable_styling(latex_options = c("HOLD_position"))
 ```
 
 Now having transformed the data lets see how this influences the distribution.
@@ -275,8 +287,9 @@ tgp1 <- ggplot(data = trans)+
                             fill=has_cancer))+
     scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
-  ylab("creatinine in mg/ml (log transformed)")
+  ylab("creatinine in mg/ml (log2 transformed)")
 
 tgp2 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = has_cancer,
@@ -285,8 +298,9 @@ tgp2 <- ggplot(data = trans)+
                             fill=has_cancer))+
     scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
-  ylab("LIVE1 in ng/ml (log transformed)")
+  ylab("LIVE1 in ng/ml (log2 transformed)")
 
 tgp3 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = has_cancer,
@@ -295,8 +309,9 @@ tgp3 <- ggplot(data = trans)+
                             fill=has_cancer))+
     scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
-  ylab("REG1B in ng/ml (log transformed)")
+  ylab("REG1B in ng/ml (log2 transformed)")
 
 tgp4 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = has_cancer,
@@ -305,8 +320,9 @@ tgp4 <- ggplot(data = trans)+
                             fill=has_cancer))+
   scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
-  ylab("TFF1 in ng/ml (log transformed)")
+  ylab("TFF1 in ng/ml (log2 transformed)")
 
 tgp5 <- ggplot(data = trans)+
   geom_boxplot(mapping = aes(x = has_cancer,
@@ -315,8 +331,9 @@ tgp5 <- ggplot(data = trans)+
                             fill=has_cancer))+
     scale_x_discrete(labels=c("control",
                             "pancreatic cancer"))+
+  scale_fill_manual(values=my_colours)+
   xlab("has_cancer")+
-  ylab("REG1A in ng/ml (log transformed)")
+  ylab("REG1A in ng/ml (log2 transformed)")
 
 grid.arrange(tgp1, tgp2, tgp3, tgp4, tgp5, nrow = 2)
 ```
@@ -331,36 +348,53 @@ swt1 <- shapiro.test(trans$creatinine)
 qq1 <- ggplot(trans, aes(sample = creatinine, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
+  scale_color_manual(values=my_colours)+
   ggtitle("creatinine")
 
 swt2 <- shapiro.test(trans$LYVE1)
 qq2 <- ggplot(trans, aes(sample = LYVE1, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
+  scale_color_manual(values=my_colours)+
   ggtitle("LYVE1")
 
 swt3 <- shapiro.test(trans$REG1B)
 qq3 <- ggplot(trans, aes(sample = REG1B, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
+  scale_color_manual(values=my_colours)+
   ggtitle("REG1B")
 
 swt4 <- shapiro.test(trans$TFF1)
 qq4 <- ggplot(trans, aes(sample = TFF1, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
+  scale_color_manual(values=my_colours)+
   ggtitle("TFF1")
 
 swt5 <- shapiro.test(trans$REG1A)
 qq5 <- ggplot(trans, aes(sample = REG1A, colour = has_cancer)) +
   stat_qq() +
   stat_qq_line() +
+  scale_color_manual(values=my_colours)+
   ggtitle("REG1A")
 
 grid.arrange(qq1, qq2, qq3, qq4, qq5, nrow = 2)
 ```
 
 The data is despite the transformation still not fully normalised however we can still continue but this should be kept this in mind in case of future problems.
+
+| Variable   | p-value          | Interpretation                        |
+|------------|------------------|---------------------------------------|
+| creatinine | `r swt1$p.value` | this data is not normally distributed |
+| LYVE1      | `r swt2$p.value` | this data is not normally distributed |
+| REG1B      | `r swt3$p.value` | this data is not normally distributed |
+| TFF1       | `r swt4$p.value` | this data is not normally distributed |
+| REG1A      | `r swt5$p.value` | this data is not normally distributed |
+
+: Results and interpertation of shapiro wiks test of normalcy
+
+\newpage
 
 ## Correlations
 
@@ -373,12 +407,14 @@ new_data$sex <- factor(new_data$sex)
 
 Using the new dataframe let's explore if the data is correlated.
 
-```{r heatmap, fig.height=10, fig.width=20, fig.cap="heatmap displaying correlation of values"}
+```{r heatmap, fig.height=5, fig.width=10, fig.cap="heatmap displaying correlation of values"}
 matrix_data <- drop_na(new_data[,c(1, 3:7)])
 cor_matrix <- cor(matrix_data)
-heatmap(cor_matrix, scale = "column", col = heat.colors(5, rev = T), main = "Heatmap depicting correlations", symm = T, Rowv = NA, Colv = NA)
-legend(x="right", legend=c("full","strong", "medium", "minimal", "none"),fill=heat.colors(5))
+heatmap(cor_matrix, scale = "none", col = heat.colors(6, rev = T), main = "Heatmap depicting correlations", symm = T, Rowv = NA, Colv = NA)
+legend(x="right", legend=c("full","very strong", "strong", "moderate", "weak", "negligible"),fill=heat.colors(6))
 ```
+
+\newpage
 
 REG1 A and B seem moderately correlated (`r cor_matrix[4,6]`), otherwise no real strong correlation is observed.
 
@@ -394,18 +430,22 @@ t5 <-t.test(new_data$TFF1 ~ new_data$has_cancer)
 t6 <-t.test(new_data$REG1A ~ new_data$has_cancer)
 ```
 
-| Variable   | p-value        | Col3 |
-|------------|----------------|------|
-| Age        | `r t1$p.value` | yes  |
-| Creatinine | `r t2$p.value` | no   |
-| LYVE1      | `r t3$p.value` | yes  |
-| REG1B      | `r t4$p.value` | yes  |
-| TFF1       | `r t5$p.value` | yes  |
-| REG1A      | `r t6$p.value` | yes  |
+| Variable   | p-value        | Significant |
+|------------|----------------|-------------|
+| Age        | `r t1$p.value` | yes         |
+| Creatinine | `r t2$p.value` | no          |
+| LYVE1      | `r t3$p.value` | yes         |
+| REG1B      | `r t4$p.value` | yes         |
+| TFF1       | `r t5$p.value` | yes         |
+| REG1A      | `r t6$p.value` | yes         |
 
-: t test reults and interpertation
+: T-test results and interpretation
 
 No p-value except Creatinine seems to be small enough to not be statistically significant. We will expect to see this in the model.
+
+## Output
+
+Having explored the data and expanded the understanding of the variables to exploit them for machine learning and exterminating unhelpful variables from the data, it's time to write the data away to an Attribute Relation File Format (arff) and to train machine learning models on it.
 
 ```{r finalization of data}
 write.arff(new_data, "Data/data.arff")
@@ -413,8 +453,16 @@ write.arff(new_data, "Data/data.arff")
 
 # Machine learning
 
-```{r}
+## Algorithm selection
+
+After using the weka Experimenter trying out different algorithms the following results where produced.
+
+```{r ml algorithms comparison}
 algores <- read.delim("Data/algores.csv", sep = ",")
 kable(algores, caption = "Preformance of diferent algorithms", align = "lcccccccr", booktabs = T) %>%
   kable_styling(latex_options = c("scale_down", "HOLD_position"))
 ```
+
+*note: that the OneR, J48 and IBk algorithms have been optimised beforehand.*
+
+The model using the SimpleLogistic algorithm is the most accurate, has the biggest area under the curve, and ranks second best in another important category: true positive rate. Thus the SimpleLogistic model will be used.

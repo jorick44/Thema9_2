@@ -48,9 +48,6 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-# Data files
-Data/source
-
 # IntelliJ
 out/
 
